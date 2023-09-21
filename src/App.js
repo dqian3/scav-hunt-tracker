@@ -1,15 +1,14 @@
-import { collection, getDocs } from "firebase/firestore"; 
+import React from 'react';
 
-const querySnapshot = await getDocs(collection(db, "hunts"));
-querySnapshot.forEach((doc) => {
-  console.log(`${doc.id} => ${doc.data()}`);
-});
+import { db } from './firebase'
+
+import { collection, getDocs } from "firebase/firestore"; 
 
 function App() {
   return (
     <div className="App">
-      <header className="Scav Hunt">
-
+      <header>
+        Scav Hunt Central
       </header>
     </div>
   );
