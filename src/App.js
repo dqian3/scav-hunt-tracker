@@ -8,10 +8,9 @@ function App() {
 
   let [hunts, setHunts] = useState([]);
   let [players, setPlayers] = useState([]);
-  let [items, setItems] = useState([]);
 
   let [curPlayer, setCurPlayer] = useState(localStorage.getItem("player") || "");
-  let [curHunt, setCurHunt] = useState("");
+  let [curHunt, setCurHunt] = useState(0);
 
   useEffect(() => {
     async function getData() {
@@ -19,25 +18,12 @@ function App() {
       setPlayers(results.docs.map((doc) => doc.id));
 
       results = await getDocs(collection(db, "hunts"));
-      setHunts(results.docs.map((doc) => doc.id));
+      setHunts(results.docs);
 
-      setCurHunt(results.docs[0]?.id);
+      console.log(results.docs.at(0).data())
     }
     getData();
   }, []);
-
-  useEffect(() => {
-    async function getItems() {
-      let itemsRef = collection(db, "items");
-      const huntRef = doc(db, "hunts", curHunt);
-      const q = query(itemsRef, where("hunt", "==", huntRef));
-      let results = await getDocs(q);
-
-      setItems(results.docs.map(d => d.data()))
-    }
-    if (!curHunt) return; // Don't bother if no hunt selected
-    getItems();
-  }, [curHunt]);
 
   return (
     <div className="App">
@@ -52,9 +38,9 @@ function App() {
           What scavenger hunt? 
           <select 
             value={curHunt}
-            onChange={e => setCurHunt(e.target.value)}
+            onChange={(e) => e.setCurHunt(e.target.value)}
           >
-            {hunts.map((h) => <option key={h} value={h}>{h}</option>)}
+            {hunts.map((h, i) => <option key={h.id} value={i}>{h.id}</option>)}
           </select>
 
           Who are you: 
@@ -74,17 +60,21 @@ function App() {
 
         
         <table>
-          <th>
-            <td>Item</td>
-            <td>{curPlayer}</td>
-          </th>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>{curPlayer}</th>
+            </tr>
+          </thead>
+
+          <tbody>
           {
-            items.map((item) => <tr>
+            hunts[curHunt]?.data().items.map((item) => <tr key={item["description"]}>
               <td>{item["description"]}</td>
-              {players.map((p) => <td key={p}>{p}</td>)}
+              <td>Upload</td>
             </tr>) 
           }
-
+          </tbody>
         </table>
 
 
