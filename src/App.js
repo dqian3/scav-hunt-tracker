@@ -6,7 +6,7 @@ import { collection, getDocs, doc, updateDoc} from "firebase/firestore";
 
 // Todo update stuff in general
 
-async function getItemGuess(image, labels) {
+async function classifyImage(image, labels) {
   const response = await fetch("http://localhost:8000/guess_label", {
     method: "POST",
     headers: {
@@ -18,12 +18,12 @@ async function getItemGuess(image, labels) {
     })
   });
   const answer = await response.json();
-  console.log(answer);
 
+  return answer;
 }
 
 async function convertBase64(file){
-  /// ewwwww
+  /// this feels gross, but it's what stackoverflow says to do
   return await new Promise((resolve, reject) => {
     const fileReader = new FileReader();
     fileReader.readAsDataURL(file)
@@ -74,10 +74,12 @@ function App() {
 
   // Form state
   let [curPlayer, setCurPlayer] = useState(localStorage.getItem("player") || "");
-  let [curHunt, setCurHunt] = useState("");
+  let [curHunt, setCurHunt] = useState(localStorage.getItem("hunt") || "");
 
   let [image, setImage] = useState(null);
   let [imageObjURL, setImageObjURL] = useState("");
+
+  let [guessItem, setGuessItem] = useState("");
 
   useEffect(() => {
     async function getData() {
@@ -97,13 +99,24 @@ function App() {
   };
 
 
-
-  async function guessItem(e) {
-    e.preventDefault();
+  // TODO make this a better handler
+  async function handleGuess (){
     const labels = hunts[curHunt].items.map((item) => item.description);
     const encodedImage = await convertBase64(image);
-    getItemGuess(encodedImage, labels);
+    
+    const results = await classifyImage(encodedImage, labels);
+    
+    if (results[0].score < 0.9) {
+      setGuessItem(JSON.stringify(results.slice(0, 3)));
+    } else {
+      setGuessItem(`Submit '${results[0]["label"]}?`);
+    }
   }
+
+  useEffect(() => {
+    if (image === null) return;
+    handleGuess();
+  }, [image])
 
   return (
     <div className="App">
@@ -117,7 +130,7 @@ function App() {
           What scavenger hunt? 
           <select 
             value={curHunt}
-            onChange={(e) => setCurHunt(e.target.value)}
+            onChange={(e) => {setCurHunt(e.target.value); localStorage.setItem("hunt", e.target.value)}}
           >
             <option value={""}>Select...</option>
             {Object.keys(hunts).map((h) => <option key={h} value={h}>{h}</option>)}
@@ -147,11 +160,14 @@ function App() {
           <br/>          
           <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}>
           </input>
-
-          <button onClick={guessItem}>Guess</button>
-
+          <br/>
+          <h4>{guessItem}</h4>
+          
         </form>
 
+        <br/>
+        <hr/>
+        <br/>
         
         <table>
           <thead>
