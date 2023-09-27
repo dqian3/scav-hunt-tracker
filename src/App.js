@@ -7,13 +7,14 @@ import { collection, getDocs, doc, updateDoc} from "firebase/firestore";
 // Todo update stuff in general
 
 async function getItemGuess(image, labels) {
-  const response = await fetch("https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32", {
+  const response = await fetch("http://localhost:8000/guess_label", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       image,
-      parameters: {
-        candidate_labels: labels
-      }    
+      labels
     })
   });
   const answer = await response.json();
@@ -27,7 +28,8 @@ async function convertBase64(file){
     const fileReader = new FileReader();
     fileReader.readAsDataURL(file)
     fileReader.onload = () => {
-      resolve(fileReader.result);
+      let encoded = fileReader.result.toString().replace(/^data:(.*,)?/, '');
+      resolve(encoded);
     }
     fileReader.onerror = (error) => {
       reject(error);
@@ -98,7 +100,7 @@ function App() {
 
   async function guessItem(e) {
     e.preventDefault();
-    const labels = hunts[curHunt].items.slice(0, 10);
+    const labels = hunts[curHunt].items.map((item) => item.description);
     const encodedImage = await convertBase64(image);
     getItemGuess(encodedImage, labels);
   }
