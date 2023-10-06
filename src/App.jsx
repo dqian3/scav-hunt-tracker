@@ -1,9 +1,21 @@
 import React, { useEffect, useState } from 'react';
 
-import { db } from './firebase'
+import { db, auth, signInUI } from './firebase'
+import {GoogleAuthProvider, EmailAuthProvider} from 'firebase/auth'
 
-import { collection, getDocs} from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { Link } from 'react-router-dom';
+
+
+signInUI.start('#firebaseui-auth-container', {
+    signInOptions: [
+        EmailAuthProvider.PROVIDER_ID,
+        GoogleAuthProvider.PROVIDER_ID,
+
+    ],
+    // Other config options...
+});
+  
 
 export default function App() {
     // State from firebase_
