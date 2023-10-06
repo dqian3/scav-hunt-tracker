@@ -181,7 +181,6 @@ function App() {
           {
             hunts[curHunt]?.items.map((item) => <tr key={item["description"]}>
               <td>{item["description"]}</td>
-              <td>Upload</td>
             </tr>) 
           }
           </tbody>
