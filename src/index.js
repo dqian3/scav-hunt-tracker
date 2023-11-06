@@ -9,25 +9,35 @@ import {
 import SignIn from './SignIn';
 import Home from './Home';
 import CreateHunt from './CreateHunt';
-import Play from './Play'
+import Play from './Play';
+import Root from './Root';
 
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: "/login",
     element: <SignIn></SignIn>,
   },
   {
-    path: "/home",
-    element: <Home></Home>,
+    path: "/",
+    element:<Root></Root>,
+
+    children: [
+      {
+        path: "/",
+        element: <Home></Home>,
+      },
+      {
+        path: "/create",
+        element: <CreateHunt></CreateHunt>
+      },
+      {
+        path: "/play/:huntId",
+        element: <Play></Play>
+      }
+    ]
+
   },
-  {
-    path: "/create",
-    element: <CreateHunt></CreateHunt>
-  },
-  {
-    path: "/play/:huntId",
-    element: <Play></Play>
-  }
+
 ]);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
