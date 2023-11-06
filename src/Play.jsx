@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useOutletContext, useParams } from 'react-router-dom';
 import { collection, query, doc, orderBy } from "firebase/firestore";
 
 import { db } from './firebase'
@@ -39,8 +39,6 @@ function SummaryTable({
         submsTable.get(s.data().item.path)[playerIndex] = ([s.id, s.data()]);
     });
 
-    console.log(submsTable);
-
     return (               
     <table>
         <thead>
@@ -71,6 +69,93 @@ function SummaryTable({
 }
 
 
+function SubmitItem({
+    items
+}) {
+    // Form state
+    let [image, setImage] = useState(null);
+    let [imageObjURL, setImageObjURL] = useState("");
+
+    let [itemToUpload, setItemToUpload] = useState("");
+
+    // Feedback state
+    let [guessItem, setGuessItem] = useState("");
+
+
+    // User state
+    let [player] = useOutletContext();
+
+
+    function handleChangeImage(e) {
+        setImage(e.target.files[0]);
+        setImageObjURL(URL.createObjectURL(e.target.files[0]))
+    };
+
+
+    // TODO make this a better handler
+    async function handleGuess() {
+        const labels = items.docs.map((item) => item.data().desc);
+        const encodedImage = await convertBase64(image);
+
+        const results = await classifyImage(encodedImage, labels);
+
+
+        if (results[0].score < 0.9) {
+            const guessString = results.slice(0, 3).map((res) => `"${res["label"]}" (${Math.round(res["score"] * 100)}%)`).join(", or ")
+
+            setGuessItem(`Not sure what this is, please manually choose an option
+            If I had to guess, it would be: ` + guessString);
+        } else {
+            const guess =  results[0]["label"];
+            const guessId = items.docs.find((item) => item.data().desc === guess)?.ref.path ?? "";
+            
+            if (guessId == "") {
+                console.error(`Could not find ${guess} in items....`);
+            }
+
+            setGuessItem(`Is this "${guess}"?`);
+            setItemToUpload(guessId);
+        }
+    }
+
+    async function handleUpload() {
+
+    }
+
+    useEffect(() => {
+        if (image === null) return;
+        handleGuess();
+    }, [image])
+
+
+    return ( <div>
+        <h3>Upload item</h3>
+
+        <form>
+            <img alt="pending image" height={200} src={imageObjURL} />
+            <br />
+            <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}>
+            </input>
+            <br />
+            <p>{guessItem}</p>
+        </form>
+
+
+        <form onSubmit={handleUpload}>
+            <select
+                value={itemToUpload}
+                onChange={(e) => { setItemToUpload(e.target.value) }}
+            >
+                <option value={""}>Select...</option>
+                {items.docs.map((item) => <option key={item.id} value={item.ref.path}>{item.data().desc}</option>)}
+            </select>
+            <br/>
+
+            <button type='submit'>Submit</button>
+        </form>
+    </div>);
+}
+
 export default function Play() {
     let { huntId } = useParams();
 
@@ -87,40 +172,6 @@ export default function Play() {
     const [players, playersLoading, playersError] = useCollection(playersRef);
     const [items, itemsLoading, itemsError] = useCollection(itemsQuery);
     const [subms, submsLoading, submsError] = useCollection(submsRef);
-
-    // Form state
-    let [image, setImage] = useState(null);
-    let [imageObjURL, setImageObjURL] = useState("");
-
-    // Feedback state
-    let [guessItem, setGuessItem] = useState("");
-
-
-    function handleChangeImage(e) {
-        setImage(e.target.files[0]);
-        setImageObjURL(URL.createObjectURL(e.target.files[0]))
-    };
-
-
-    // TODO make this a better handler
-    async function handleGuess() {
-        const labels = Object.values(items).map((item) => item.desc);
-        const encodedImage = await convertBase64(image);
-
-        const results = await classifyImage(encodedImage, labels);
-
-        if (results[0].score < 0.9) {
-            setGuessItem(JSON.stringify(results.slice(0, 3)));
-        } else {
-            setGuessItem(`Submit '${results[0]["label"]}?`);
-        }
-    }
-
-    useEffect(() => {
-        if (image === null) return;
-        handleGuess();
-    }, [image])
-
 
     // Probably a better way to do this lol
     if (huntLoading || playersLoading || itemsLoading || submsLoading) {
@@ -139,17 +190,8 @@ export default function Play() {
         </h1>
 
         <div>
-            <h3>Upload item</h3>
 
-            <form>
-                <img alt="pending image" height={200} src={imageObjURL} />
-                <br />
-                <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}>
-                </input>
-                <br />
-                <h4>{guessItem}</h4>
-
-            </form>
+            <SubmitItem items={items}></SubmitItem>
 
             <br />
             <hr />

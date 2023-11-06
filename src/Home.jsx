@@ -5,6 +5,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 
 
 import { collection, getDocs, where, query } from "firebase/firestore";
+import { useCollection } from 'react-firebase-hooks/firestore';
 import { Link, useOutletContext } from 'react-router-dom';
 
 export default function Home() {
@@ -12,26 +13,16 @@ export default function Home() {
     const [curPlayer] = useOutletContext();
 
     // State from firebase
-    let [hunts, setHunts] = useState({});
+    const [hunts, loading, error] = useCollection(collection(db, "hunts"))
 
     // Form state
-    let [curHunt, setCurHunt] = useState(localStorage.getItem("hunt") || "");
+    const [curHunt, setCurHunt] = useState(localStorage.getItem("hunt") || "");
 
-
-    useEffect(() => {
-        async function getData() {
-            const huntsRef = collection(db, "hunts")
-            const q = query(huntsRef, where("players", "array-contains", curPlayer));
-
-            const results = await getDocs(q);
-            setHunts(Object.fromEntries(results.docs.map((doc) => [doc.id, doc.data()])));
-        }
-
-        if (curPlayer) {
-            getData();
-        }
-    }, [curPlayer]);
-
+    if (loading || error) {
+        return <p>
+            Loading...
+        </p>
+    }
 
     return (
         <div>
@@ -53,7 +44,7 @@ export default function Home() {
                         onChange={(e) => { setCurHunt(e.target.value) }}
                     >
                         <option value={""}>Select...</option>
-                        {Object.entries(hunts).map(([hId, h]) => <option key={hId} value={hId}>{h.displayName}</option>)}
+                        {hunts.docs.map(h => <option key={h.id} value={h.id}>{h.data().displayName}</option>)}
                     </select>
                 </p>
             </div>
