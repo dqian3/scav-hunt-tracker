@@ -10,6 +10,20 @@ import { convertBase64, classifyImage } from './classify';
 
 // Todo update stuff in general
 
+function SubmissionDisplay({
+    submission
+}) {
+
+    if (submission == null) {
+        return <input type='checkbox' checked={false} readOnly></input>
+    }
+
+    const [id, data] = submission;
+
+    // TODO add info
+    return <input type='checkbox' checked={true} readOnly></input>
+}
+
 function SummaryTable({
     items,
     subms,
@@ -44,11 +58,9 @@ function SummaryTable({
                     <td>{item.data().desc}</td>
                     {
                         submsTable.get(item.ref.path).map((entry, i) => {
-                            if (entry === null) {
-                                return <td key={item.id + "-" + i}> Not Done</td>
-                            }
-                            const [id, s] = entry;
-                            return <td key={id}>{id}</td>
+                            return <td key={item.id + "-" + i}> 
+                                <SubmissionDisplay submission={entry}></SubmissionDisplay>
+                            </td>
                         } )
                     }
                 </tr>)
