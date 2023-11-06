@@ -12,13 +12,13 @@ function EditHunt({
 
     const curHuntRef = doc(db, "hunts", curHunt);
 
-    const playerRefs = collection(db, "players");
+    const playersRef = collection(db, "players");
 
     const itemsRef = collection(db, "hunts", curHunt, "items");
     const itemsQuery = query(itemsRef, orderBy("author"));
 
     const [hunt, huntLoading, huntError] = useDocument(curHuntRef);
-    const [players, playersLoading, playersError] = useCollection(playerRefs);
+    const [players, playersLoading, playersError] = useCollection(playersRef);
     const [items, loading, error] = useCollection(itemsQuery);
 
     // Form state
@@ -36,7 +36,7 @@ function EditHunt({
             return;
         }
 
-        newItems.split("\n").forEach((item) => {
+        newItems.trim().split("\n").forEach((item) => {
             addDoc(itemsRef, {
                 desc: item.trim(),
                 author: author,
