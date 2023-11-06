@@ -7,14 +7,15 @@ import { collection, getDocs } from "firebase/firestore";
 import { Link } from 'react-router-dom';
 
 
-signInUI.start('#firebaseui-auth-container', {
-    signInOptions: [
-        EmailAuthProvider.PROVIDER_ID,
-        GoogleAuthProvider.PROVIDER_ID,
+// TODO try using react-firebaseui
+// signInUI.start('#firebaseui-auth-container', {
+//     signInOptions: [
+//         EmailAuthProvider.PROVIDER_ID,
+//         GoogleAuthProvider.PROVIDER_ID,
 
-    ],
-    // Other config options...
-});
+//     ],
+//     // Other config options...
+// });
   
 
 export default function App() {
