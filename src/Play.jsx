@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
-import { collection, query, doc, orderBy } from "firebase/firestore";
 
-import { db } from './firebase'
-
+import { collection, query, doc, orderBy, addDoc} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL} from 'firebase/storage';
 import { useCollection, useDocument } from 'react-firebase-hooks/firestore';
+
+import { db, storage } from './firebase'
+
 
 import { convertBase64, classifyImage } from './classify';
 
 // Todo update stuff in general
 
 function SubmissionDisplay({
-    submission
+    submission,
+    setCurSubDetails,
 }) {
 
     if (submission == null) {
@@ -21,13 +24,14 @@ function SubmissionDisplay({
     const [id, data] = submission;
 
     // TODO add info
-    return <input type='checkbox' checked={true} readOnly></input>
+    return <input type='checkbox' checked={true} readOnly onClick={(e) => setCurSubDetails(data)}></input>
 }
 
 function SummaryTable({
     items,
     subms,
-    players
+    players,
+    setCurSubDetails,
 }) {
 
     // Note, we rely on the insertion order of the items here!
@@ -56,8 +60,9 @@ function SummaryTable({
                     <td>{item.data().desc}</td>
                     {
                         submsTable.get(item.ref.path).map((entry, i) => {
+                            // This is a bit hacky, but I add in the item description here so it can be displayed in SubmissionDetails
                             return <td key={item.id + "-" + i}> 
-                                <SubmissionDisplay submission={entry}></SubmissionDisplay>
+                                <SubmissionDisplay submission={entry} setCurSubDetails={(s) => setCurSubDetails({...s, itemDesc: item.data().desc})}/>
                             </td>
                         } )
                     }
@@ -70,6 +75,7 @@ function SummaryTable({
 
 
 function SubmitItem({
+    huntId,
     items
 }) {
     // Form state
@@ -87,6 +93,7 @@ function SubmitItem({
 
 
     function handleChangeImage(e) {
+        console.log(e.target.files[0])
         setImage(e.target.files[0]);
         setImageObjURL(URL.createObjectURL(e.target.files[0]))
     };
@@ -118,7 +125,27 @@ function SubmitItem({
         }
     }
 
-    async function handleUpload() {
+    async function handleUpload(e) {
+        e.preventDefault();
+        // Upload file
+        const imageRef = ref(storage, huntId + '/' + player + '/' + image.name);
+        
+        try {
+            const imageSnap = await uploadBytes(imageRef, image);
+            console.log(imageSnap)
+            const submission = {
+                item: doc(db, itemToUpload),
+                player: doc(db, "players/" + player), // TODO ew
+                image: await getDownloadURL(imageRef),
+                submittedTime: new Date(),
+            }
+
+            const result = addDoc(collection(db, "hunts", huntId, "submissions"), submission);
+            alert("Success!")
+    
+        } catch (error) {
+            console.error(error);
+        }
 
     }
 
@@ -156,6 +183,20 @@ function SubmitItem({
     </div>);
 }
 
+function SubmissionDetails({
+    submission,
+}) {
+    const uploadDate = new Date(submission["submittedTime"].seconds * 1000);
+
+    // Note, "itemDesc" comes from SummaryDetails hijacking setCurSubDetails to add the item
+    // name
+    return <div>
+        <h4>{submission["player"].id}'s submission for "{submission["itemDesc"]}" </h4>
+        <img src={submission["image"]}></img>
+        <p>Uploaded at {uploadDate.toLocaleString()}</p>
+    </div>
+}
+
 export default function Play() {
     let { huntId } = useParams();
 
@@ -172,6 +213,8 @@ export default function Play() {
     const [players, playersLoading, playersError] = useCollection(playersRef);
     const [items, itemsLoading, itemsError] = useCollection(itemsQuery);
     const [subms, submsLoading, submsError] = useCollection(submsRef);
+
+    const [curSubDetails, setCurSubDetails] = useState(null)
 
     // Probably a better way to do this lol
     if (huntLoading || playersLoading || itemsLoading || submsLoading) {
@@ -191,13 +234,21 @@ export default function Play() {
 
         <div>
 
-            <SubmitItem items={items}></SubmitItem>
+            <SubmitItem huntId={huntId} items={items}></SubmitItem>
 
             <br />
             <hr />
             <br />
 
-            <SummaryTable items={items} subms={subms} players={players}></SummaryTable>
+            <SummaryTable items={items} subms={subms} players={players} setCurSubDetails={setCurSubDetails}></SummaryTable>
+
+            { curSubDetails && <>
+                <br />
+                <hr />
+                <br />
+                <SubmissionDetails submission={curSubDetails}></SubmissionDetails>
+            
+            </>}
         </div>
 
     </div>
