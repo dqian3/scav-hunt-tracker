@@ -1,10 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { auth as authui } from 'firebaseui';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBLzEjIjV5XPRgPUClpCqP1sBek7CAhLass",
+    apiKey: "AIzaSyBLzEjIjV5XPRgPUClpCqP1sBek7CAhLas",
     authDomain: "scav-hunt-tracker.firebaseapp.com",
     projectId: "scav-hunt-tracker",
     storageBucket: "scav-hunt-tracker.appspot.com",
@@ -17,6 +16,4 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-var signInUI = new authui.AuthUI(auth);
-
-export {app, db, auth, signInUI}
+export {app, db, auth}

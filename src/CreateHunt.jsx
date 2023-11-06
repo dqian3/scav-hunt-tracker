@@ -21,7 +21,7 @@ export default function CreateHunt() {
     // return <form onSubmit={handleSubmit}>
     //     <h3>Set items</h3>
 
-    //     <p>Items, separated by line</p>
+    //     <p>Item, separated by line</p>
     //     <textarea value={items} onChange={(e) => setItems(e.target.value)} />
 
     //     <br />
