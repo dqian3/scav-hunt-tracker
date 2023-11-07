@@ -12,7 +12,7 @@ class ZSClassifier():
 
 class ClipZSClassifier(ZSClassifier):
     # Make these class variables, so it can be shared
-    checkpoint = "openai/clip-vit-large-patch14"
+    checkpoint = "openai/clip-vit-base-patch32"
     processor = AutoProcessor.from_pretrained(checkpoint)
     model = AutoModelForZeroShotImageClassification.from_pretrained(checkpoint)
 

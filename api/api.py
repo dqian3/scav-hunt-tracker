@@ -21,6 +21,7 @@ origins = [
     "http://localhost:3000",
     "http://localhost:8080",
     "https://scav-hunt-tracker.onrender.com",
+    "https://scavhunt.danqian.net",
 ]
 
 app.add_middleware(
