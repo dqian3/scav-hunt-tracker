@@ -1,5 +1,5 @@
 async function classifyImage(image, labels) {
-    const response = await fetch(process.env.API_URL  + "/guess_label", {
+    const response = await fetch(process.env.REACT_APP_API_URL  + "/guess_label", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
