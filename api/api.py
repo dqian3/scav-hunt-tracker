@@ -20,6 +20,7 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",
     "http://localhost:8080",
+    "https://scav-hunt-tracker.onrender.com",
 ]
 
 app.add_middleware(

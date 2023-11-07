@@ -1,5 +1,5 @@
 async function classifyImage(image, labels) {
-    const response = await fetch("http://localhost:8000/guess_label", {
+    const response = await fetch(process.env.API_URL  + "/guess_label", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
