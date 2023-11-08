@@ -133,8 +133,9 @@ export default function CreateHunt() {
     const [players, playersLoading, playersError] = useCollection(collection(db, "players"));
 
     // Form state
-    let [curHunt, setCurHunt] = useState(localStorage.getItem("hunt") || "");
+    let [curHunt, setCurHunt] = useState();
     let [newHuntName, setNewHuntName] = useState("")
+    let [legacy, setLegacy] = useState(false)
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -148,7 +149,8 @@ export default function CreateHunt() {
             "displayName": newHuntName,
             "startDate": defaultDate,
             "endDate": defaultDate,
-            "players":  players.docs.map((p) => p.id) // TODO don't automatically include all players
+            "players":  players.docs.map((p) => p.id), // TODO don't automatically include all players
+            "legacy": legacy,
         });
 
         setCurHunt(newHuntRef.id);
@@ -159,15 +161,16 @@ export default function CreateHunt() {
 
             Create new hunt
             <form onSubmit={handleSubmit}>
+                Legacy hunt (pre website) <input type="checkbox" checked={legacy} onChange={(e) => setLegacy(e.target.checked)}/>
+                <br/>
                 <input value={newHuntName} onChange={(e) => setNewHuntName(e.target.value)} />
-                <br />
                 <button type="submit">Submit</button>
             </form>
 
             or select from existing:
             <select
                 value={curHunt}
-                onChange={(e) => { setCurHunt(e.target.value); localStorage.setItem("hunt", e.target.value)  }}
+                onChange={(e) => { setCurHunt(e.target.value)  }}
             >
                 <option value={""}>Select...</option>
                 {hunts.docs.map(h => <option key={h.id} value={h.id}>{h.data().displayName}</option>)}

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 
+import EXIF from 'exif-js'
+
 import { collection, query, doc, orderBy, addDoc} from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL} from 'firebase/storage';
 import { useCollection, useDocument } from 'react-firebase-hooks/firestore';
 
 import { db, storage } from './firebase'
-
 
 import { convertBase64, classifyImage } from './classify';
 
@@ -43,7 +44,7 @@ function SummaryTable({
         submsTable.get(s.data().item.path)[playerIndex] = ([s.id, s.data()]);
     });
 
-    return (               
+    return (
     <table>
         <thead>
             <tr>
@@ -61,7 +62,7 @@ function SummaryTable({
                     {
                         submsTable.get(item.ref.path).map((entry, i) => {
                             // This is a bit hacky, but I add in the item description here so it can be displayed in SubmissionDetails
-                            return <td key={item.id + "-" + i}> 
+                            return <td key={item.id + "-" + i}>
                                 <SubmissionDisplay submission={entry} setCurSubDetails={(s) => setCurSubDetails({...s, itemDesc: item.data().desc})}/>
                             </td>
                         } )
@@ -79,25 +80,32 @@ function SubmitItem({
     items
 }) {
     // Form state
-    let [image, setImage] = useState(null);
-    let [imageObjURL, setImageObjURL] = useState("");
+    const [image, setImage] = useState(null);
+    const [imageObjURL, setImageObjURL] = useState("");
 
-    let [itemToUpload, setItemToUpload] = useState("");
+    const [itemToUpload, setItemToUpload] = useState("");
+    const [imageDate, setImageDate] = useState("");
 
     // Feedback state
-    let [guessItem, setGuessItem] = useState("");
+    const [guessItem, setGuessItem] = useState("");
 
 
     // User state
-    let [player] = useOutletContext();
+    const [player] = useOutletContext();
 
 
     function handleChangeImage(e) {
-        console.log(e.target.files[0])
         setImage(e.target.files[0]);
         setImageObjURL(URL.createObjectURL(e.target.files[0]))
     };
 
+
+    function test() {
+        EXIF.getData(image, function() {
+            var allMetaData = EXIF.getAllTags(this);
+            console.log(allMetaData)
+        })
+    }
 
     // TODO make this a better handler
     async function handleGuess() {
@@ -115,7 +123,7 @@ function SubmitItem({
         } else {
             const guess =  results[0]["label"];
             const guessId = items.docs.find((item) => item.data().desc === guess)?.ref.path ?? "";
-            
+
             if (guessId == "") {
                 console.error(`Could not find ${guess} in items....`);
             }
@@ -129,20 +137,20 @@ function SubmitItem({
         e.preventDefault();
         // Upload file
         const imageRef = ref(storage, huntId + '/' + player + '/' + image.name);
-        
+
         try {
             const imageSnap = await uploadBytes(imageRef, image);
             console.log(imageSnap)
             const submission = {
                 item: doc(db, itemToUpload),
-                player: doc(db, "players/" + player), // TODO ew
+                player: doc(db, "players/" + "Axel"), // TODO ew
                 image: await getDownloadURL(imageRef),
                 submittedTime: new Date(),
             }
 
             const result = addDoc(collection(db, "hunts", huntId, "submissions"), submission);
             alert("Success!")
-    
+
         } catch (error) {
             console.error(error);
         }
@@ -159,7 +167,7 @@ function SubmitItem({
         <h3>Upload item</h3>
 
         <form>
-            <img alt="pending image" height={200} src={imageObjURL} />
+            <img alt="pending image" height={200} src={imageObjURL} onClick={test}/>
             <br />
             <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}>
             </input>
@@ -247,7 +255,7 @@ export default function Play() {
                 <hr />
                 <br />
                 <SubmissionDetails submission={curSubDetails}></SubmissionDetails>
-            
+
             </>}
         </div>
 
