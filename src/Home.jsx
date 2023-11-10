@@ -16,7 +16,7 @@ export default function Home() {
     const [hunts, loading, error] = useCollection(collection(db, "hunts"))
 
     // Form state
-    const [curHunt, setCurHunt] = useState(localStorage.getItem("hunt") || "");
+    const [curHunt, setCurHunt] = useState("");
 
     if (loading || error) {
         return <p>
@@ -49,7 +49,9 @@ export default function Home() {
                 </p>
             </div>
 
-            <Link to={"/play/" + curHunt} >Go</Link>
+            {curHunt !== "" && 
+                <Link to={"/play/" + curHunt} disabled>Go</Link>
+            }
         </div>
     );
 }

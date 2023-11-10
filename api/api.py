@@ -19,7 +19,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:3000",
-    "http://localhost:8080",
+    "https://localhost:3000",
     "https://scav-hunt-tracker.onrender.com",
     "https://scavhunt.danqian.net",
 ]
