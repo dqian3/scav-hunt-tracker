@@ -233,7 +233,19 @@ function SubmitItem({
         <h3>Upload item</h3>
 
         <form>
-            <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}/>
+            
+            Capture: <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}/>
+            
+            
+            <div {...getRootProps()}>
+                <input {...getInputProps()} />
+                {
+                    isDragActive ?
+                    <p>Drop the files here ...</p> :
+                    <p>Drag 'n' drop some files here, or click to select files</p>
+                }
+            </div>
+
             <br />
 
             <img alt="pending image" height={200} src={imageObjURL} />
@@ -250,14 +262,7 @@ function SubmitItem({
                 }
             </p>
                 
-            <div {...getRootProps()}>
-                <input {...getInputProps()} />
-                {
-                    isDragActive ?
-                    <p>Drop the files here ...</p> :
-                    <p>Drag 'n' drop some files here, or click to select files</p>
-                }
-            </div>
+
 
             <br />
             <p>{guessItem}</p>
