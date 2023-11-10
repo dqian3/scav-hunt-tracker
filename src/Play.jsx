@@ -11,7 +11,9 @@ import { db, storage } from './firebase'
 
 import { convertBase64, classifyImage } from './classify';
 
-// Todo update stuff in general
+
+
+
 
 function SubmissionDisplay({
     submission,
@@ -77,21 +79,22 @@ function SummaryTable({
 
 function SubmitItem({
     huntId,
-    items
+    items,
+    players
 }) {
+    // User 
+    const [player] = useOutletContext();
+
     // Form state
     const [image, setImage] = useState(null);
     const [imageObjURL, setImageObjURL] = useState("");
 
     const [itemToUpload, setItemToUpload] = useState("");
-    const [imageDate, setImageDate] = useState("");
+    const [manualPlayer, setManualPlayer] = useState(player);
 
     // Feedback state
     const [guessItem, setGuessItem] = useState("");
-
-
-    // User state
-    const [player] = useOutletContext();
+    const [takenDate, setTakenDate] = useState(null);
 
 
     function handleChangeImage(e) {
@@ -99,38 +102,34 @@ function SubmitItem({
         setImageObjURL(URL.createObjectURL(e.target.files[0]))
     };
 
-
-    function test() {
-        EXIF.getData(image, function() {
-            var allMetaData = EXIF.getAllTags(this);
-            console.log(allMetaData)
-        })
-    }
-
     // TODO make this a better handler
     async function handleGuess() {
         const labels = items.docs.map((item) => item.data().desc);
         const encodedImage = await convertBase64(image);
 
-        const results = await classifyImage(encodedImage, labels);
-
-
-        if (results[0].score < 0.9) {
-            const guessString = results.slice(0, 3).map((res) => `"${res["label"]}" (${Math.round(res["score"] * 100)}%)`).join(", or ")
-
-            setGuessItem(`Not sure what this is, please manually choose an option
-            If I had to guess, it would be: ` + guessString);
-        } else {
-            const guess =  results[0]["label"];
-            const guessId = items.docs.find((item) => item.data().desc === guess)?.ref.path ?? "";
-
-            if (guessId == "") {
-                console.error(`Could not find ${guess} in items....`);
+        try {
+            const results = await classifyImage(encodedImage, labels);
+            if (results[0].score < 0.9) {
+                const guessString = results.slice(0, 3).map((res) => `"${res["label"]}" (${Math.round(res["score"] * 100)}%)`).join(", or ")
+    
+                setGuessItem(`Not sure what this is, please manually choose an option
+                If I had to guess, it would be: ` + guessString);
+            } else {
+                const guess =  results[0]["label"];
+                const guessId = items.docs.find((item) => item.data().desc === guess)?.ref.path ?? "";
+    
+                if (guessId == "") {
+                    console.error(`Could not find ${guess} in items....`);
+                }
+    
+                setGuessItem(`Is this "${guess}"?`);
+                setItemToUpload(guessId);
             }
 
-            setGuessItem(`Is this "${guess}"?`);
-            setItemToUpload(guessId);
+        } catch {
+            setGuessItem("Unable to connect to guessing service...")
         }
+
     }
 
     async function handleUpload(e) {
@@ -143,7 +142,7 @@ function SubmitItem({
             console.log(imageSnap)
             const submission = {
                 item: doc(db, itemToUpload),
-                player: doc(db, "players/" + "Axel"), // TODO ew
+                player: doc(db, "players/" + manualPlayer), // TODO ew
                 image: await getDownloadURL(imageRef),
                 submittedTime: new Date(),
             }
@@ -159,6 +158,24 @@ function SubmitItem({
 
     useEffect(() => {
         if (image === null) return;
+
+        EXIF.getData(image, function() {
+
+            let date = null;
+
+            var exifDate = EXIF.getTag(this, "DateTimeOriginal");
+            if (exifDate) {
+                const [Y, M, D, h, m, s] =  exifDate.split(/[\: ]/);
+                date = new Date(Y, M-1, D, h, m, s); // Month is 0 indexed for some reason lol
+            } else if (image.lastModified) {
+                date = new Date(image.lastModified)
+            } else {
+                date = new Date();
+            }
+
+            setTakenDate(date);
+        });
+    
         handleGuess();
     }, [image])
 
@@ -167,12 +184,13 @@ function SubmitItem({
         <h3>Upload item</h3>
 
         <form>
-            <img alt="pending image" height={200} src={imageObjURL} onClick={test}/>
+            <img alt="pending image" height={200} src={imageObjURL} />
             <br />
             <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}>
             </input>
             <br />
             <p>{guessItem}</p>
+            <p>{takenDate?.toLocaleString()}</p>
         </form>
 
 
@@ -184,6 +202,17 @@ function SubmitItem({
                 <option value={""}>Select...</option>
                 {items.docs.map((item) => <option key={item.id} value={item.ref.path}>{item.data().desc}</option>)}
             </select>
+
+            <br/>
+            <select
+                value={manualPlayer}
+                onChange={(e) => { setManualPlayer(e.target.value) }}
+            >
+                <option value={""}>Select...</option>
+                {players.docs.map((item) => <option key={item.id} value={item.id}>{item.id}</option>)}
+            </select>
+
+
             <br/>
 
             <button type='submit'>Submit</button>
@@ -242,7 +271,7 @@ export default function Play() {
 
         <div>
 
-            <SubmitItem huntId={huntId} items={items}></SubmitItem>
+            <SubmitItem huntId={huntId} items={items} players={players}></SubmitItem>
 
             <br />
             <hr />
