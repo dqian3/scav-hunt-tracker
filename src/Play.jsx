@@ -5,15 +5,13 @@ import { useDropzone } from 'react-dropzone';
 import EXIF from 'exif-js'
 import moment from 'moment';
 
-import { collection, query, doc, orderBy, addDoc} from "firebase/firestore";
+import { collection, query, doc, orderBy, addDoc, where, and, getDocs, updateDoc} from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL} from 'firebase/storage';
 import { useCollection, useDocument } from 'react-firebase-hooks/firestore';
 
 import { db, storage } from './firebase'
 
 import { convertBase64, classifyImage } from './classify';
-
-
 
 
 
@@ -51,6 +49,7 @@ function SummaryTable({
 
         submsTable.get(s.data().item.path)[playerIndex] = ([s.id, s.data()]);
     });
+
 
 
     return (
@@ -162,21 +161,43 @@ function SubmitItem({
 
     async function handleUpload(e) {
         e.preventDefault();
+
+        // Check if submission exists!
+        const q = query(collection(db, "hunts", huntId, "submissions"), and(
+            where("item", "==", doc(db, itemToUpload)),
+            where("player", "==", doc(db, "players/" + player)),
+            where("active", "==", true)
+        ))
+
+        const result = await getDocs(q)
+
+
+        if (!result.empty) {
+            if (!window.confirm(`Overwrite your previous submission?`)) return;
+
+            await Promise.all(result.docs.map((submission) => 
+                updateDoc(submission.ref, {
+                    "active": false
+                })
+            ));
+        }
+
         // Upload file
         const imageRef = ref(storage, huntId + '/' + player + '/' + image.name);
 
         try {
             const imageSnap = await uploadBytes(imageRef, image);
-            console.log(imageSnap)
             const submission = {
                 item: doc(db, itemToUpload),
                 player: doc(db, "players/" + player), // TODO ew
                 image: await getDownloadURL(imageRef),
+                imageRef: imageRef.fullPath,
                 takenTime: takenDate,
                 submittedTime: new Date(),
+                active: true
             }
 
-            const result = addDoc(collection(db, "hunts", huntId, "submissions"), submission);
+            const result = await addDoc(collection(db, "hunts", huntId, "submissions"), submission);
 
         } catch (error) {
             console.error(error);
@@ -207,10 +228,6 @@ function SubmitItem({
         handleGuess();
     }, [image])
 
-
-    if (takenDate) {
-        console.log(moment(takenDate));
-    }
 
     return ( <div>
         <h3>Upload item</h3>
@@ -299,11 +316,12 @@ export default function Play() {
     const itemsQuery = query(itemsRef, orderBy("author"));
 
     const submsRef = collection(db, "hunts", huntId, "submissions");
+    const submsQuery = query(submsRef, where("active", "==", true)); // != true includes things with no "old field"
 
     const [hunt, huntLoading, huntError] = useDocument(huntRef);
     const [players, playersLoading, playersError] = useCollection(playersRef);
     const [items, itemsLoading, itemsError] = useCollection(itemsQuery);
-    const [subms, submsLoading, submsError] = useCollection(submsRef);
+    const [subms, submsLoading, submsError] = useCollection(submsQuery);
 
     const [curSubDetails, setCurSubDetails] = useState(null)
 
@@ -315,7 +333,6 @@ export default function Play() {
     if (huntError || playersError || itemsError || submsError) {
         return <p>Error!</p>
     }
-
 
     return (
     <div>
