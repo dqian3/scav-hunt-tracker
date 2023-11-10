@@ -3,6 +3,7 @@ import { useOutletContext, useParams } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 
 import EXIF from 'exif-js'
+import moment from 'moment';
 
 import { collection, query, doc, orderBy, addDoc} from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL} from 'firebase/storage';
@@ -207,13 +208,30 @@ function SubmitItem({
     }, [image])
 
 
+    if (takenDate) {
+        console.log(moment(takenDate));
+    }
+
     return ( <div>
         <h3>Upload item</h3>
 
         <form>
-            <img alt="pending image" height={200} src={imageObjURL} />
-            <br />
             <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}/>
+            <br />
+
+            <img alt="pending image" height={200} src={imageObjURL} />
+            <p>Image date: {takenDate?.toLocaleString()}  
+                {
+                    takenDate &&
+                    <span style={{paddingLeft: '1rem'}}>
+                        Edit:
+                        <input type='datetime-local' value={moment(takenDate).format("YYYY-MM-DDTHH:mm:ss")} onChange={(e) => {
+                            setTakenDate(e.target.valueAsDate)
+                        
+                        }}/>
+                    </span>   
+                }
+            </p>
                 
             <div {...getRootProps()}>
                 <input {...getInputProps()} />
@@ -226,7 +244,7 @@ function SubmitItem({
 
             <br />
             <p>{guessItem}</p>
-            <p>{takenDate?.toLocaleString()}</p>
+
         </form>
 
 
@@ -240,13 +258,13 @@ function SubmitItem({
             </select>
 
             <br/>
-            <select
+            {/* <select
                 value={manualPlayer}
                 onChange={(e) => { setManualPlayer(e.target.value) }}
             >
                 <option value={""}>Select...</option>
                 {players.docs.map((item) => <option key={item.id} value={item.id}>{item.id}</option>)}
-            </select>
+            </select> */}
 
 
             <br/>
