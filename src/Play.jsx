@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
+import { useDropzone } from 'react-dropzone';
 
 import EXIF from 'exif-js'
 
@@ -37,14 +38,19 @@ function SummaryTable({
     setCurSubDetails,
 }) {
 
+    let leaderboard = new Map(players.docs.map((p) => [p.ref.path, 0]))
+
     // Note, we rely on the insertion order of the items here!
     let submsTable = new Map(items.docs.map((item) => [item.ref.path, players.docs.map((p) => null)]));
     // console.log(submsByItem);
     subms.docs.forEach((s) => {
         // Since this returns a ref, we need to ask for .path
         const playerIndex = players.docs.map(p => p.ref.path).indexOf(s.data().player.path);
+        leaderboard.set(s.data().player.path, leaderboard.get(s.data().player.path) + 1);
+
         submsTable.get(s.data().item.path)[playerIndex] = ([s.id, s.data()]);
     });
+
 
     return (
     <table>
@@ -58,6 +64,14 @@ function SummaryTable({
         </thead>
 
         <tbody>
+            <tr>
+                <td> <b>Leaderbaord</b></td>
+                {
+                    [...leaderboard.entries()].map(([player, score]) => <td key={player}>{score}</td>) 
+                }
+
+            </tr>
+
             {
                 items.docs.map((item) => <tr key={item.id}>
                     <td>{item.data().desc}</td>
@@ -90,11 +104,19 @@ function SubmitItem({
     const [imageObjURL, setImageObjURL] = useState("");
 
     const [itemToUpload, setItemToUpload] = useState("");
-    const [manualPlayer, setManualPlayer] = useState(player);
+    // const [manualPlayer, setManualPlayer] = useState(player);
 
     // Feedback state
     const [guessItem, setGuessItem] = useState("");
     const [takenDate, setTakenDate] = useState(null);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop: (files) => {
+            console.log(files[0])
+            setImage(files[0]);
+            setImageObjURL(URL.createObjectURL(files[0]))
+        }
+    });
 
 
     function handleChangeImage(e) {
@@ -109,23 +131,28 @@ function SubmitItem({
 
         try {
             const results = await classifyImage(encodedImage, labels);
-            if (results[0].score < 0.9) {
-                const guessString = results.slice(0, 3).map((res) => `"${res["label"]}" (${Math.round(res["score"] * 100)}%)`).join(", or ")
-    
-                setGuessItem(`Not sure what this is, please manually choose an option
-                If I had to guess, it would be: ` + guessString);
-            } else {
-                const guess =  results[0]["label"];
-                const guessId = items.docs.find((item) => item.data().desc === guess)?.ref.path ?? "";
-    
-                if (guessId == "") {
-                    console.error(`Could not find ${guess} in items....`);
-                }
-    
-                setGuessItem(`Is this "${guess}"?`);
-                setItemToUpload(guessId);
+
+            const guess =  results[0]["label"];
+
+            const guesses = results.slice(0, 5).map((res) => {
+                const guessId = items.docs.find((item) => item.data().desc === res["label"])?.ref.path ?? "";
+
+                return <button onClick={(e) => {e.preventDefault(); setItemToUpload(guessId)}}>                    
+                    {`"${res["label"]}" (${Math.round(res["score"] * 100)}%)`}
+                </button>
+            })
+            
+
+            setGuessItem(guesses);
+
+            const guessId = items.docs.find((item) => item.data().desc === guess)?.ref.path ?? "";
+
+            if (guessId == "") {
+                console.error(`Could not find ${guess} in items....`);
             }
 
+            setItemToUpload(guessId);
+            
         } catch {
             setGuessItem("Unable to connect to guessing service...")
         }
@@ -142,13 +169,13 @@ function SubmitItem({
             console.log(imageSnap)
             const submission = {
                 item: doc(db, itemToUpload),
-                player: doc(db, "players/" + manualPlayer), // TODO ew
+                player: doc(db, "players/" + player), // TODO ew
                 image: await getDownloadURL(imageRef),
+                takenTime: takenDate,
                 submittedTime: new Date(),
             }
 
             const result = addDoc(collection(db, "hunts", huntId, "submissions"), submission);
-            alert("Success!")
 
         } catch (error) {
             console.error(error);
@@ -186,8 +213,17 @@ function SubmitItem({
         <form>
             <img alt="pending image" height={200} src={imageObjURL} />
             <br />
-            <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}>
-            </input>
+            <input name='image' type="file" accept="image/*" capture="environment" onChange={handleChangeImage}/>
+                
+            <div {...getRootProps()}>
+                <input {...getInputProps()} />
+                {
+                    isDragActive ?
+                    <p>Drop the files here ...</p> :
+                    <p>Drag 'n' drop some files here, or click to select files</p>
+                }
+            </div>
+
             <br />
             <p>{guessItem}</p>
             <p>{takenDate?.toLocaleString()}</p>
