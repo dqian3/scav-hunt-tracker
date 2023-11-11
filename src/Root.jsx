@@ -34,14 +34,17 @@ export default function Root() {
 
     if (!loading && !user) {
         return <Navigate to="/login"/>
-    } 
-    
-    
+    }
+
+
     if (curPlayer === "Unknown") {
         return <p>
             You are not signed up, contact Dan :).
         </p>
     }
-    return <Outlet context={[curPlayer]}></Outlet>
+    return <div id="playroot" style={{
+    }}>
+        <Outlet context={[curPlayer]}></Outlet>
+    </div>
 
 }
