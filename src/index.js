@@ -10,6 +10,7 @@ import SignIn from './SignIn';
 import Home from './Home';
 import CreateHunt from './CreateHunt';
 import Play from './Play';
+import Gallery from './Gallery';
 import Root from './Root';
 
 const router = createBrowserRouter([
@@ -33,6 +34,10 @@ const router = createBrowserRouter([
       {
         path: "/play/:huntId",
         element: <Play></Play>
+      },
+      {
+        path: "/gallery/:huntId",
+        element: <Gallery></Gallery>
       }
     ]
 

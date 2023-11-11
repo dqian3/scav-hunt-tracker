@@ -160,7 +160,7 @@ function UploadItem({
 
         {!image && <>
             <div>
-                <label class="cameraButton"
+                <label
                     style={{
                         border: "2px solid",
                         borderRadius: "5px",
