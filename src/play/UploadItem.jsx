@@ -33,6 +33,7 @@ function UploadItem({
     // Feedback state
     const [guessItem, setGuessItem] = useState("");
     const [takenDate, setTakenDate] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (files) => {
@@ -89,6 +90,10 @@ function UploadItem({
     async function handleUpload(e) {
         e.preventDefault();
 
+        if (submitting) {
+            return;
+        }
+
         // Check if submission exists!
         const q = query(collection(db, "hunts", huntId, "submissions"), and(
             where("item", "==", doc(db, itemToUpload)),
@@ -110,9 +115,10 @@ function UploadItem({
         }
 
         // Upload file
-        const imageRef = ref(storage, huntId + '/' + player + '/' + image.name);
+        setSubmitting(true);
 
         try {
+            const imageRef = ref(storage, huntId + '/' + player + '/' + image.name);
             const imageSnap = await uploadBytes(imageRef, image);
             const submission = {
                 item: doc(db, itemToUpload),
@@ -130,6 +136,7 @@ function UploadItem({
             console.error(error);
         }
 
+        setSubmitting(false);
     }
 
     useEffect(() => {
@@ -153,6 +160,11 @@ function UploadItem({
         });
 
         handleGuess();
+        setImage(null);
+        setTakenDate(null);
+        setGuessItem("");
+        setItemToUpload("");
+
     }, [image])
 
 
@@ -249,7 +261,7 @@ function UploadItem({
             <br/>
             <br/>
 
-            <button style={{marginRight: "4px"}} type='submit'>Submit</button>
+            <button disabled={submitting} style={{marginRight: "4px"}} type='submit'>Submit</button>
 
             <button type="reset" onClick={() => {
                 setImage(null);

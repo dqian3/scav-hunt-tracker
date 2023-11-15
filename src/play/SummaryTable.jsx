@@ -1,4 +1,7 @@
-import React from 'react';
+import { updateDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+
+import { useOutletContext } from 'react-router-dom';
 
 function SubmissionDisplay({
     submission,
@@ -15,12 +18,40 @@ function SubmissionDisplay({
     return <input type='checkbox' checked={true} readOnly onClick={(e) => setCurSubDetails(data)}></input>
 }
 
+
+function Note({
+    item,
+    curPlayer
+}) {
+    const [note, setNote] = useState(item.data()?.notes?.[curPlayer] ?? "");
+
+    // Firebase is only updated 1000ms after user starts typing
+    // Sets a timeout, and cleans it up if note is changed again
+    useEffect(() => {
+        const timeoutRef = setTimeout(() => {
+            updateDoc(item.ref, {
+                ["notes." + curPlayer]: note
+            })
+        }, 1000)
+
+        return () => clearTimeout(timeoutRef);
+    }, [note]);
+
+    return <input
+        value={note}
+        onChange={(e) => {setNote(e.target.value)}}
+    />
+
+}
+
+
 function SummaryTable({
     items,
     subms,
     players,
     setCurSubDetails,
 }) {
+    const [curPlayer] = useOutletContext();
 
     let leaderboard = new Map(players.docs.map((p) => [p.ref.path, 0]))
 
@@ -44,6 +75,7 @@ function SummaryTable({
                 {
                     players.docs.map(p => <th key={p.id}>{p.id}</th>)
                 }
+                <th>Notes</th>
             </tr>
         </thead>
 
@@ -67,8 +99,14 @@ function SummaryTable({
                             </td>
                         } )
                     }
+
+                    <td>
+                        <Note item={item} curPlayer={curPlayer}/>
+                    </td>
+
                 </tr>)
             }
+
         </tbody>
     </table>
     );
