@@ -9,13 +9,19 @@ function SubmissionDisplay({
 }) {
 
     if (submission == null) {
-        return <input type='checkbox' checked={false} readOnly></input>
+        return <input tabIndex={-1} type='checkbox' checked={false} readOnly></input>
     }
 
     const [id, data] = submission;
 
     // TODO add info
-    return <input type='checkbox' checked={true} readOnly onClick={(e) => setCurSubDetails(data)}></input>
+    return <input
+        type='checkbox'
+        tabIndex={-1}
+        readOnly={true}
+        checked={true}
+        onClick={(e) => setCurSubDetails(data)}
+    />
 }
 
 
