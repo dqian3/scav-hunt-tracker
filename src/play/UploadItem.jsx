@@ -82,7 +82,7 @@ function UploadItem({
             setItemToUpload(guessId);
 
         } catch {
-            console.al("Unable to connect to guessing service...")
+            setGuessItem("Unable to connect to guessing service...")
         }
 
     }
