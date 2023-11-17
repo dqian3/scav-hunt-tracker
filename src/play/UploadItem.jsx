@@ -82,7 +82,7 @@ function UploadItem({
             setItemToUpload(guessId);
 
         } catch {
-            setGuessItem("Unable to connect to guessing service...")
+            console.al("Unable to connect to guessing service...")
         }
 
     }
@@ -136,6 +136,12 @@ function UploadItem({
             console.error(error);
         }
 
+
+        setImage(null);
+        setTakenDate(null);
+        setGuessItem("");
+        setItemToUpload("");
+
         setSubmitting(false);
     }
 
@@ -160,10 +166,6 @@ function UploadItem({
         });
 
         handleGuess();
-        setImage(null);
-        setTakenDate(null);
-        setGuessItem("");
-        setItemToUpload("");
 
     }, [image])
 
