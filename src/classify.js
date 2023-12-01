@@ -1,32 +1,16 @@
 async function classifyImage(image, labels) {
+    const data = new FormData();
+
+    data.set("image", image);
+    data.set("labels", JSON.stringify(labels)); // JSON encoded
+
     const response = await fetch(process.env.REACT_APP_API_URL  + "/guess_label", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            image,
-            labels
-        })
+        body: data
     });
     const answer = await response.json();
 
     return answer;
 }
 
-async function convertBase64(file) {
-    /// this feels gross, but it's what stackoverflow says to do
-    return await new Promise((resolve, reject) => {
-        const fileReader = new FileReader();
-        fileReader.readAsDataURL(file)
-        fileReader.onload = () => {
-            let encoded = fileReader.result.toString().replace(/^data:(.*,)?/, '');
-            resolve(encoded);
-        }
-        fileReader.onerror = (error) => {
-            reject(error);
-        }
-    })
-}
-
-export { classifyImage, convertBase64 }
+export { classifyImage }

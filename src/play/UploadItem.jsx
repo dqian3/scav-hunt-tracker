@@ -10,7 +10,7 @@ import { ref, uploadBytes, getDownloadURL} from 'firebase/storage';
 import EXIF from 'exif-js';
 import moment from 'moment';
 
-import { convertBase64, classifyImage } from '../classify';
+import { classifyImage } from '../classify';
 
 // Styling stuff
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -26,35 +26,67 @@ function UploadItem({
     // Form state
     const [image, setImage] = useState(null);
     const [imageObjURL, setImageObjURL] = useState("");
+    const [imageFilename, setImageFilename] = useState("");
 
     const [itemToUpload, setItemToUpload] = useState("");
     // const [manualPlayer, setManualPlayer] = useState(player);
 
     // Feedback state
+    const [convertMessage, setConvertMessage] = useState("");
     const [guessItem, setGuessItem] = useState("");
     const [takenDate, setTakenDate] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
+    async function convertHEIC(image_file) {
+        setConvertMessage("Converting HEIC to jpg...");
+
+        const data = new FormData();
+        data.set("image", image_file);
+    
+        const response = await fetch(process.env.REACT_APP_API_URL  + "/convert_heic", {
+            method: "POST",
+            body: data
+        });
+        const answer = await response.blob();
+        setImage(answer);
+        setImageObjURL(URL.createObjectURL(answer));
+
+        // THis is more annyoing than it should be...
+        const extIndex = image_file.name.lastIndexOf('.')
+        const trimmed = extIndex === -1 ? image_file.name : image_file.name.substring(0, extIndex);
+        setImageFilename(trimmed + ".jpg");
+
+        setConvertMessage("");
+    }
+
+
+    function setAndConvertImage(file) {
+        if (file.type === "image/heic" || file.type === "image/heif") {
+            convertHEIC(file);
+            return;
+        }  
+        setImage(file);
+        setImageObjURL(URL.createObjectURL(file));
+        setImageFilename(file.name)
+    }
+
+
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (files) => {
-            setImage(files[0]);
-            setImageObjURL(URL.createObjectURL(files[0]))
+            setAndConvertImage(files[0]);
         }
     });
 
 
     function handleChangeImage(e) {
-        setImage(e.target.files[0]);
-        setImageObjURL(URL.createObjectURL(e.target.files[0]))
+        setAndConvertImage(e.target.files[0]);
     };
 
     // TODO make this a better handler
     async function handleGuess() {
         const labels = items.docs.map((item) => item.data().desc);
-        const encodedImage = await convertBase64(image);
-
         try {
-            const results = await classifyImage(encodedImage, labels);
+            const results = await classifyImage(image, labels);
 
             const guess =  results[0]["label"];
 
@@ -118,7 +150,7 @@ function UploadItem({
         setSubmitting(true);
 
         try {
-            const imageRef = ref(storage, huntId + '/' + player + '/' + image.name);
+            const imageRef = ref(storage, huntId + '/' + player + '/' + imageFilename);
             const imageSnap = await uploadBytes(imageRef, image);
             const submission = {
                 item: doc(db, itemToUpload),
@@ -164,15 +196,13 @@ function UploadItem({
 
             setTakenDate(date);
         });
-
         handleGuess();
-
+        
     }, [image])
-
 
     return ( <div>
 
-        {!image && <>
+        <div hidden={!!image}>
             <div>
                 <label
                     style={{
@@ -229,10 +259,10 @@ function UploadItem({
 
             </div>
 
-        </>}
+            <p>{convertMessage}</p>
+        </div>
 
-
-        {image && <div>
+        <div hidden={!image}>
             <img height={240} src={imageObjURL} />
 
             <p>
@@ -250,8 +280,6 @@ function UploadItem({
 
             <p>{guessItem}</p>
 
-
-            <form onSubmit={handleUpload}>
             <select
                 value={itemToUpload}
                 onChange={(e) => { setItemToUpload(e.target.value) }}
@@ -263,7 +291,7 @@ function UploadItem({
             <br/>
             <br/>
 
-            <button disabled={submitting} style={{marginRight: "4px"}} type='submit'>Submit</button>
+            <button disabled={submitting} style={{marginRight: "4px"}} type='submit' onClick={handleUpload}>Submit</button>
 
             <button type="reset" onClick={() => {
                 setImage(null);
@@ -272,10 +300,7 @@ function UploadItem({
                 setItemToUpload("");
             }}>Clear</button>
 
-        </form>
-
-
-        </div>}
+        </div>
 
 
 

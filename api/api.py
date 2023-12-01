@@ -1,20 +1,15 @@
-import torch
-
 from PIL import Image
-from io import BytesIO
-import base64
+import json
+import io
 
-from fastapi import FastAPI, UploadFile, StreamingResponse
+from typing import Annotated
+from fastapi import FastAPI, Form, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 
 from classifier import ClipZSClassifier
-from converter import convert_heic
+from converter import heic_to_jpg
 
-from pydantic import BaseModel
-
-class ImageTask(BaseModel):
-    image: str
-    labels: list[str]
 
 app = FastAPI()
 
@@ -36,11 +31,17 @@ app.add_middleware(
 classifier = ClipZSClassifier()
 
 @app.post("/guess_label")
-def guess_label(task: ImageTask):
-    image = Image.open(BytesIO(base64.b64decode(task.image)))
-    return classifier.classify(image, task.labels)
+def guess_label(
+    image: Annotated[bytes, File()],
+    labels: Annotated[str, Form()]
+):
+    image = Image.open(io.BytesIO(image))
+    labels = json.loads(labels)
+
+    return classifier.classify(image, labels)
 
 
-@app.post("/guess_label")
-def guess_label(file: UploadFile):
-    return StreamingResponse(convert_heic(file), media_type="image/jpeg")
+@app.post("/convert_heic")
+def convert(image: Annotated[bytes, File()]):
+    out_bytes = heic_to_jpg(image)
+    return Response(content=out_bytes, media_type="image/jpeg")
