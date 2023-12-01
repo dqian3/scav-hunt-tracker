@@ -4,10 +4,11 @@ from PIL import Image
 from io import BytesIO
 import base64
 
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from classifier import ClipZSClassifier
+from converter import convert_heic
 
 from pydantic import BaseModel
 
@@ -38,3 +39,8 @@ classifier = ClipZSClassifier()
 def guess_label(task: ImageTask):
     image = Image.open(BytesIO(base64.b64decode(task.image)))
     return classifier.classify(image, task.labels)
+
+
+@app.post("/guess_label")
+def guess_label(file: UploadFile):
+    return StreamingResponse(convert_heic(file), media_type="image/jpeg")
